@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Questions</title>
+  <style>
+    body {
+      background: #f8f9fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      text-align: center;
+    }
+    .question {
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .question-title {
+      font-weight: bold;
+    }
+    .answers-link {
+      font-size: 14px;
+      color: #0d6efd;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .ask-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 60px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      padding: 8px;
+      resize: none;
+    }
+    button {
+      background: #0d6efd;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      align-self: flex-end;
+    }
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .pagination button {
+      background: #f1f1f1;
+      color: #333;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .pagination button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Questions</h2>
+    <div id="questionsList"></div>
+
+    <div class="pagination">
+      <button id="prevBtn" onclick="loadQuestions(prevUrl)" disabled>&laquo; Prev</button>
+      <button id="nextBtn" onclick="loadQuestions(nextUrl)" disabled>Next &raquo;</button>
+    </div>
+
+    <div class="ask-box">
+      <textarea id="newQuestion" placeholder="Ask your question..."></textarea>
+      <button onclick="postQuestion()">Post Question</button>
+    </div>
+  </div>
+
+  <script>
+    const apiBase = 'http://127.0.0.1:8000/api/v1';
+    let nextUrl = null;
+    let prevUrl = null;
+
+    // Retrieve the token from localStorage
+    const token = localStorage.getItem("access_token");
+
+    // Check if the token exists
+    if (!token) {
+      console.error("No token found in localStorage");
+    }
+
+    // Load questions with pagination support
+    async function loadQuestions(url = `${apiBase}/questions/`) {
+      if (!token) {
+        console.error('Authorization token missing');
+        return;
+      }
+
+      // Fetch questions with the Authorization header
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          "Authorization": `JWT ${token}`, // Adjust if your API expects "Bearer" or "JWT"
+          "Content-Type": "application/json"
+        }
+      });
+
+      // Error handling if response is not okay
+      if (!res.ok) {
+        console.error('Failed to fetch questions:', await res.text());
+        return;
+      }
+
+      // Get pagination info from headers
+      nextUrl = res.headers.get("Next");
+      prevUrl = res.headers.get("Prev");
+
+
+
+      document.getElementById("nextBtn").disabled = !nextUrl;
+      document.getElementById("prevBtn").disabled = !prevUrl;
+
+      // Handle the fetched data
+      const data = await res.json();
+
+      // Display the questions
+      const list = document.getElementById('questionsList');
+      list.innerHTML = ''; // Clear the previous questions
+
+      data.forEach((q, index) => {
+        const div = document.createElement('div');
+        div.className = 'question';
+        div.innerHTML = `
+          <div class="question-title">Q${index + 1}: ${q.question}</div>
+          <a class="answers-link" href="answers.html?questionId=${q.id}">${q.no_of_answers} Answer(s)</a>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    // Post a new question
+    async function postQuestion() {
+      const questionText = document.getElementById('newQuestion').value;
+      if (!questionText.trim()) {
+        console.error('Question text cannot be empty');
+        return;
+      }
+
+      if (!token) {
+        console.error('Authorization token missing');
+        return;
+      }
+
+      // Post the new question to the API
+      const res = await fetch(`${apiBase}/questions/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `JWT ${token}`, // Adjust if needed
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ question: questionText })
+      });
+
+      // Error handling if response is not okay
+      if (!res.ok) {
+        console.error('Failed to post question:', await res.text());
+        return;
+      }
+
+      // Clear the textarea and reload questions
+      document.getElementById('newQuestion').value = '';
+      loadQuestions();
+    }
+
+    // Initial load of questions
+    loadQuestions();
+  </script>
+</body>
+</html>

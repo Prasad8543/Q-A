@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f3f4f6;
+    }
+
+    nav {
+      background-color: #3b82f6;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    nav h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: 500;
+    }
+
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+
+    .center-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: calc(100vh - 72px); /* full height minus navbar */
+      padding: 1rem;
+    }
+
+    .container {
+      background: #ffffff;
+      padding: 2rem 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .container h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    button:hover {
+      background-color: #2563eb;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .success-message {
+      color: green;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .redirect-link {
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .redirect-link a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+
+    .redirect-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Q&A</h1>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="#">About</a>
+      <a href="#">Contact Us</a>
+    </div>
+  </nav>
+
+  <main class="center-wrapper">
+    <div class="container">
+      <h2>Sign Up</h2>
+      <form id="signup-form" onsubmit="signUpUser(event)">
+        <div class="form-group">
+          <label for="first-name">First Name</label>
+          <input type="text" id="first-name" required />
+        </div>
+        <div class="form-group">
+          <label for="last-name">Last Name</label>
+          <input type="text" id="last-name" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required />
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input type="password" id="confirm-password" required />
+        </div>
+        <button type="submit">Sign Up</button>
+        <div id="signup-message" class="error-message"></div>
+        <div class="redirect-link">
+          Already have an account? <a href="index.html">Login</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    async function signUpUser(event) {
+      event.preventDefault();
+
+      const firstName = document.getElementById("first-name").value.trim();
+      const lastName = document.getElementById("last-name").value.trim();
+      const email = document.getElementById("signup-email").value.trim();
+      const password = document.getElementById("signup-password").value.trim();
+      const confirmPassword = document.getElementById("confirm-password").value.trim();
+      const messageBox = document.getElementById("signup-message");
+
+      messageBox.innerText = "";
+
+      if (password !== confirmPassword) {
+        messageBox.innerText = "Passwords do not match.";
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:8000/api/v1/users/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          const token = data.token; // Assuming the token is in the API response
+
+          if (token) {
+            // Store the token in localStorage
+            localStorage.setItem('authToken', token);
+
+            messageBox.className = "success-message";
+            messageBox.innerText = "Sign-up successful! Redirecting...";
+            setTimeout(() => {
+              // Redirect to questions.html after successful sign-up
+              window.location.href = "questions.html"; 
+            }, 1500);
+          }
+        } else {
+          messageBox.className = "error-message";
+          messageBox.innerText = data.detail || "Failed to sign up.";
+        }
+      } catch (error) {
+        messageBox.className = "error-message";
+        messageBox.innerText = "Something went wrong.";
+      }
+    }
+  </script>
+</body>
+</html>
